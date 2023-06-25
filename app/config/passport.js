@@ -1,13 +1,12 @@
+const users = require('./users')
+
 // config/passport.js
 const passport = require('passport');
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 
 // Example user data (replace with your own user data model)
-const users = [
-  { id: 1, username: 'john', password: 'password' },
-  { id: 2, username: 'jane', password: 'password' },
-];
+
 
 // JWT strategy configuration
 const jwtOptions = {

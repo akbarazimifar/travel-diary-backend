@@ -1,74 +1,87 @@
 const express = require('express');
-const router = express.Router();
+const { v4: uuid } = require('uuid');
 const authenticate = require('../middleware/auth');
 
-// Mock data for travel entries
-const mockTravelEntries = [
+const router = express.Router();
+
+const travelEntries = [
   {
-    id: 1,
-    destination: 'Paris',
-    dates: '2023-06-01 to 2023-06-05',
-    activities: 'Visited the Eiffel Tower, Louvre Museum',
-    highlights: 'Eiffel Tower night view',
+    id: '1',
+    userId: '12345',
+    title: 'My Trip to Paris',
+    location: 'Paris, France',
+    description: 'I had an amazing time exploring the beautiful city of Paris.',
   },
-  {
-    id: 2,
-    destination: 'Tokyo',
-    dates: '2023-07-10 to 2023-07-15',
-    activities: 'Explored Shibuya, Akihabara',
-    highlights: 'Sushi at Tsukiji Market',
-  },
+  // Other travel entries
 ];
 
-// GET /api/travel-entries - Get all travel entries
-router.get('/travel-entries', (req, res) => {
-  res.json(mockTravelEntries);
-});
+// Protected route: Create a new travel entry
+router.post('/', authenticate, (req, res) => {
+  const userId = req.user.id;
+  const travelEntryId = uuid();
 
-// GET /api/travel-entries/:id - Get a single travel entry by ID
-router.get('/travel-entries/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const entry = mockTravelEntries.find((entry) => entry.id === id);
-  if (!entry) {
-    res.status(404).json({ error: 'Travel entry not found' });
-  } else {
-    res.json(entry);
-  }
-});
-
-// POST /api/travel-entries - Create a new travel entry
-router.post('/travel-entries', (req, res) => {
-  // Here you can access the request body to get the data for the new travel entry
-  // For now, we'll just return a success message with the hardcoded mock data
-  const newEntry = {
-    id: mockTravelEntries.length + 1,
-    destination: 'New Destination',
-    dates: '2023-08-01 to 2023-08-07',
-    activities: 'Explored attractions',
-    highlights: 'Memorable experience',
+  const newTravelEntry = {
+    id: travelEntryId,
+    userId: userId,
+    title: req.body.title,
+    location: req.body.location,
+    description: req.body.description,
   };
 
-  mockTravelEntries.push(newEntry);
-
-  res.json({ message: 'Travel entry created successfully', entry: newEntry });
+  travelEntries.push(newTravelEntry);
+  res.status(201).json(newTravelEntry);
 });
 
-// DELETE /api/travel-entries/:id - Delete a travel entry by ID
-router.delete('/travel-entries/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const entryIndex = mockTravelEntries.findIndex((entry) => entry.id === id);
-  if (entryIndex === -1) {
+// Protected route: Retrieve all travel entries
+router.get('/', authenticate, (req, res) => {
+  const userId = req.user.id;
+
+  const userTravelEntries = travelEntries.filter(entry => entry.userId === userId);
+  res.json(userTravelEntries);
+});
+
+// Protected route: Retrieve a specific travel entry
+router.get('/:id', authenticate, (req, res) => {
+  const userId = req.user.id;
+
+  const travelEntry = travelEntries.find(entry => entry.id === req.params.id && entry.userId === userId);
+
+  if (!travelEntry) {
     res.status(404).json({ error: 'Travel entry not found' });
   } else {
-    const deletedEntry = mockTravelEntries.splice(entryIndex, 1);
-    res.json({ message: 'Travel entry deleted successfully', entry: deletedEntry[0] });
+    res.json(travelEntry);
   }
 });
 
-// Protected route
-router.get('/protected', authenticate, (req, res) => {
-  // Only authenticated requests can access this route
-  res.json({ message: 'You are authorized to access this protected route' });
+// Protected route: Update a travel entry
+router.put('/:id', authenticate, (req, res) => {
+  const userId = req.user.id;
+
+  const travelEntry = travelEntries.find(entry => entry.id === req.params.id && entry.userId === userId);
+
+  if (!travelEntry) {
+    res.status(404).json({ error: 'Travel entry not found' });
+  } else {
+    travelEntry.title = req.body.title;
+    travelEntry.location = req.body.location;
+    travelEntry.description = req.body.description;
+
+    res.json(travelEntry);
+  }
+});
+
+// Protected route: Delete a travel entry
+router.delete('/:id', authenticate, (req, res) => {
+  const userId = req.user.id;
+
+  const index = travelEntries.findIndex(entry => entry.id === req.params.id && entry.userId === userId);
+
+  if (index === -1) {
+    res.status(404).json({ error: 'Travel entry not found' });
+  } else {
+    const deletedEntry = travelEntries.splice(index, 1);
+    res.json(deletedEntry[0]);
+  }
 });
 
 module.exports = router;
