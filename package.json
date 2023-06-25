@@ -1,0 +1,11 @@
+{
+  "name": "travel-diary-backend",
+  "version": "1.0.0",
+  "description": "The Travel Diary application allows users to document and share their travel experiences, photos, and recommendations with others. Created with the help of ChatGPT",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Daniel Wall",
+  "license": "ISC"
+}
