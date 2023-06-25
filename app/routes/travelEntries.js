@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const authenticate = require('../middleware/auth');
 
 // Mock data for travel entries
 const mockTravelEntries = [
@@ -62,6 +63,12 @@ router.delete('/travel-entries/:id', (req, res) => {
     const deletedEntry = mockTravelEntries.splice(entryIndex, 1);
     res.json({ message: 'Travel entry deleted successfully', entry: deletedEntry[0] });
   }
+});
+
+// Protected route
+router.get('/protected', authenticate, (req, res) => {
+  // Only authenticated requests can access this route
+  res.json({ message: 'You are authorized to access this protected route' });
 });
 
 module.exports = router;

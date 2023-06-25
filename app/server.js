@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const passport = require('passport');
+const passportJWT = require('./config/passport');
 
 // Import routes
 const travelEntriesRouter = require('./routes/travelEntries');
@@ -10,6 +12,10 @@ const app = express();
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
+app.use(passport.initialize());
+
+// Apply authentication middleware to protected routes
+app.use('/api/protected', authenticate);
 
 // Base API route
 const baseRoute = '/api';
