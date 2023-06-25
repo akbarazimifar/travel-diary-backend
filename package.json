@@ -4,8 +4,23 @@
   "description": "The Travel Diary application allows users to document and share their travel experiences, photos, and recommendations with others. Created with the help of ChatGPT",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
+  "keywords": [
+    "travel",
+    "diary",
+    "backend",
+    "express",
+    "node.js",
+    "mongodb"
+  ],
   "author": "Daniel Wall",
-  "license": "ISC"
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^6.0.12",
+    "multer": "^1.4.4",
+    "bcrypt": "^5.0.1",
+    "jsonwebtoken": "^8.5.1"
+  }
 }
