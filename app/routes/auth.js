@@ -1,24 +1,64 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const config = require('../config');
-const users = require('../config/users');
+const bcrypt = require('bcrypt');
+const { getDatabase } = require('../db/mongo');
+const { JWT_SECRET } = require('../config')
 
 const router = express.Router();
 
-router.post('/signin', (req, res) => {
-  const { username, password } = req.body;
+// User sign-in route
+router.post('/signin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  // Find the user in the mock user data
-  const user = users.find(user => user.username === username && user.password === password);
+    // Retrieve user from the database
+    const usersCollection = getDatabase().collection('users');
+    const user = await usersCollection.findOne({ email });
 
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid credentials' });
+    // Check if the user exists and the password is correct
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // Generate and return a JWT token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET);
+    res.json({ token });
+  } catch (error) {
+    console.error('Error signing in:', error);
+    res.status(500).json({ message: 'Failed to sign in' });
   }
+});
 
-  // Generate a JWT with the user's information
-  const token = jwt.sign({ username: user.username }, config.JWT_SECRET, { expiresIn: '1h' });
-
-  res.json({ token });
+// User sign-up route
+router.post('/signup', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+  
+      // Check if the email is already registered
+      const usersCollection = getDatabase().collection('users');
+      const existingUser = await usersCollection.findOne({ email });
+  
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already registered' });
+      }
+  
+      // Create a new user
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const newUser = {
+        email,
+        password: hashedPassword,
+      };
+  
+      const result = await usersCollection.insertOne(newUser);
+      console.log(result)
+  
+      // Generate and return a JWT token
+      const token = jwt.sign({ userId: result.insertedId }, JWT_SECRET);
+      res.json({ token });
+    } catch (error) {
+      console.error('Error signing up:', error);
+      res.status(500).json({ message: 'Failed to sign up' });
+    }
 });
 
 module.exports = router;

@@ -2,8 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const travelEntriesRoutes = require('./routes/travelEntries');
 const authRoutes = require('./routes/auth');
+const { connectToDatabase } = require('./db/mongo');
 
 const app = express();
+
+connectToDatabase();
 
 // Middleware
 app.use(cors());

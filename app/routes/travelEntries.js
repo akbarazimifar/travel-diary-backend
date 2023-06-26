@@ -1,86 +1,90 @@
 const express = require('express');
-const { v4: uuid } = require('uuid');
-const authenticate = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+const { getDatabase } = require('../db/mongo');
 
 const router = express.Router();
 
-const travelEntries = [
-  {
-    id: '1',
-    userId: '12345',
-    title: 'My Trip to Paris',
-    location: 'Paris, France',
-    description: 'I had an amazing time exploring the beautiful city of Paris.',
-  },
-  // Other travel entries
-];
-
-// Protected route: Create a new travel entry
-router.post('/', authenticate, (req, res) => {
-  const userId = req.user.id;
-  const travelEntryId = uuid();
-
-  const newTravelEntry = {
-    id: travelEntryId,
-    userId: userId,
-    title: req.body.title,
-    location: req.body.location,
-    description: req.body.description,
-  };
-
-  travelEntries.push(newTravelEntry);
-  res.status(201).json(newTravelEntry);
-});
-
-// Protected route: Retrieve all travel entries
-router.get('/', authenticate, (req, res) => {
-  const userId = req.user.id;
-
-  const userTravelEntries = travelEntries.filter(entry => entry.userId === userId);
-  res.json(userTravelEntries);
-});
-
-// Protected route: Retrieve a specific travel entry
-router.get('/:id', authenticate, (req, res) => {
-  const userId = req.user.id;
-
-  const travelEntry = travelEntries.find(entry => entry.id === req.params.id && entry.userId === userId);
-
-  if (!travelEntry) {
-    res.status(404).json({ error: 'Travel entry not found' });
-  } else {
-    res.json(travelEntry);
+// Get all travel entries
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const collection = getDatabase().collection('travelEntries');
+    const entries = await collection.find({ userId: req.user._id }).toArray();
+    res.json(entries);
+  } catch (error) {
+    console.error('Error retrieving travel entries:', error);
+    res.status(500).json({ message: 'Failed to retrieve travel entries' });
   }
 });
 
-// Protected route: Update a travel entry
-router.put('/:id', authenticate, (req, res) => {
-  const userId = req.user.id;
+// Get a specific travel entry by ID
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const collection = getDatabase().collection('travelEntries');
+    const entry = await collection.findOne({ _id: req.params.id, userId: req.user._id });
 
-  const travelEntry = travelEntries.find(entry => entry.id === req.params.id && entry.userId === userId);
+    if (!entry) {
+      return res.status(404).json({ message: 'Travel entry not found' });
+    }
 
-  if (!travelEntry) {
-    res.status(404).json({ error: 'Travel entry not found' });
-  } else {
-    travelEntry.title = req.body.title;
-    travelEntry.location = req.body.location;
-    travelEntry.description = req.body.description;
-
-    res.json(travelEntry);
+    res.json(entry);
+  } catch (error) {
+    console.error('Error retrieving travel entry:', error);
+    res.status(500).json({ message: 'Failed to retrieve travel entry' });
   }
 });
 
-// Protected route: Delete a travel entry
-router.delete('/:id', authenticate, (req, res) => {
-  const userId = req.user.id;
+// Create a new travel entry
+router.post('/', authenticate, async (req, res) => {
+  try {
+    console.log(req.user)
+    const collection = getDatabase().collection('travelEntries');
+    const newEntry = { ...req.body, userId: req.user._id };
+    console.log(newEntry)
+    const result = await collection.insertOne(newEntry);
+    console.log(result)
+    res.status(201).json({ _id: result.insertedId });
+  } catch (error) {
+    console.error('Error creating travel entry:', error);
+    res.status(500).json({ message: 'Failed to create travel entry' });
+  }
+});
 
-  const index = travelEntries.findIndex(entry => entry.id === req.params.id && entry.userId === userId);
+// Update a travel entry
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const collection = getDatabase().collection('travelEntries');
+    const updatedEntry = { ...req.body };
+    const result = await collection.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
+      { $set: updatedEntry },
+      { returnDocument: 'after' }
+    );
 
-  if (index === -1) {
-    res.status(404).json({ error: 'Travel entry not found' });
-  } else {
-    const deletedEntry = travelEntries.splice(index, 1);
-    res.json(deletedEntry[0]);
+    if (!result.value) {
+      return res.status(404).json({ message: 'Travel entry not found' });
+    }
+
+    res.json(result.value);
+  } catch (error) {
+    console.error('Error updating travel entry:', error);
+    res.status(500).json({ message: 'Failed to update travel entry' });
+  }
+});
+
+// Delete a travel entry
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const collection = getDatabase().collection('travelEntries');
+    const result = await collection.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+
+    if (!result.value) {
+      return res.status(404).json({ message: 'Travel entry not found' });
+    }
+
+    res.json(result.value);
+  } catch (error) {
+    console.error('Error deleting travel entry:', error);
+    res.status(500).json({ message: 'Failed to delete travel entry' });
   }
 });
 
